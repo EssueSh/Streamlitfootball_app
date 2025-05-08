@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 
 # Read the Excel file
-df = pd.read_excel("valencia_players.xlsx")
+df = pd.read_csv("La-Liga Merged.csv")
 
 # 1. Title and Description
 st.title("La Liga 2021-2022 Player Stats - Valencia FC")
