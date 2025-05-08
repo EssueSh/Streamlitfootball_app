@@ -6,7 +6,7 @@ st.set_page_config(page_title="La Liga Player Stats", layout="centered")
 
 @st.cache_data
 def load_data():
-    return pd.read_excel("players.xlsx")  # Make sure this file is uploaded on Streamlit Cloud
+    return pd.read_csv("La-Liga Merged.csv")  # Make sure this file is uploaded on Streamlit Cloud
 
 df = load_data()
 
