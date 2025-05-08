@@ -1,74 +1,36 @@
 import streamlit as st
 import pandas as pd
-from sklearn.linear_model import LinearRegression
-import matplotlib.pyplot as plt
+import plotly.express as px
 
-# Read the Excel file
-df = pd.read_csv("La-Liga Merged.csv")
+st.set_page_config(page_title="La Liga Player Stats", layout="centered")
 
-# 1. Title and Description
-st.title("La Liga 2021-2022 Player Stats - Valencia FC")
-st.write("""
-    This app allows you to explore the performance of Valencia FC players in the La Liga 2021-2022 season. 
-    You can view the top-performing players, compare players, and visualize their performance through different metrics.
-""")
+@st.cache_data
+def load_data():
+    return pd.read_excel("players.xlsx")  # Make sure this file is uploaded on Streamlit Cloud
 
-# 2. Player Selection Dropdown
-player = st.selectbox("Select Player to View Details", df['Player'].unique())
+df = load_data()
 
-# Player-wise Summary
-player_data = df[df['Player'] == player]
-st.write(f"### {player}'s Performance Summary:")
-st.write(player_data[['Player', 'Min', 'Gls', 'Ast', 'xG_y', 'xAG', 'Cmp%_x', 'PrgP', 'PrgC']])
+st.title("⚽ La Liga 2021–2022 Player Stats Viewer")
 
-# 3. Comparison of Multiple Players
-st.write("### Compare Players:")
-selected_players = st.multiselect("Select Players to Compare", df['Player'].unique())
+# Clean column names (remove spaces, handle duplicates)
+df.columns = df.columns.str.strip().str.replace(" ", "_")
 
-# Filter the selected players and display their stats
-if selected_players:
-    comparison_data = df[df['Player'].isin(selected_players)]
-    st.write(f"### Comparison Between Selected Players:")
-    st.write(comparison_data[['Player', 'Min', 'Gls', 'Ast', 'xG_y', 'xAG', 'Cmp%_x', 'PrgP', 'PrgC']])
+# Let user select one or more players
+players = df['Player'].unique()
+selected_players = st.multiselect("Select Players", players, default=players[:2])
 
-# 4. Best Player Stats Summary (Show Top Performers)
-best_scorer = df.loc[df['Gls'].idxmax()]
-best_assist = df.loc[df['Ast'].idxmax()]
-best_xG = df.loc[df['xG_y'].idxmax()]
+# Filter data
+filtered_df = df[df["Player"].isin(selected_players)]
 
-st.write("### Best Performing Players Stats:")
-st.write(f"Top Scorer: {best_scorer['Player']} with {best_scorer['Gls']} goals")
-st.write(f"Top Assister: {best_assist['Player']} with {best_assist['Ast']} assists")
-st.write(f"Highest xG: {best_xG['Player']} with {best_xG['xG_y']} xG")
+if not filtered_df.empty:
+    st.subheader("📊 Basic Stats Comparison")
+    stats_to_plot = ['Min', 'Gls', 'Ast', 'xG_y', 'npxG', 'xAG', 'SCA', 'GCA']
+    df_plot = filtered_df[['Player'] + stats_to_plot].set_index('Player')
+    st.bar_chart(df_plot)
 
-# 5. Ranking Players Based on Stats (Weight Goals, Assists, and xG)
-df['Goal_Score'] = df['Gls'] / df['Gls'].max()
-df['Assist_Score'] = df['Ast'] / df['Ast'].max()
-df['xG_Score'] = df['xG_y'] / df['xG_y'].max()
+    st.subheader("🧾 Player Summary Table")
+    st.dataframe(filtered_df[['Player', 'Team', 'Pos', 'Age', 'Min', 'Gls', 'Ast', 'xG_y', 'npxG', 'xAG', 'SCA', 'GCA']])
+else:
+    st.info("Please select at least one player to view stats.")
 
-weights = {'Goal_Score': 0.4, 'Assist_Score': 0.3, 'xG_Score': 0.3}
-df['Player_Score'] = (df['Goal_Score'] * weights['Goal_Score'] + 
-                       df['Assist_Score'] * weights['Assist_Score'] + 
-                       df['xG_Score'] * weights['xG_Score'])
-
-# Sort players by the total score
-top_players = df.sort_values('Player_Score', ascending=False)
-st.write("### Player Ranking Based on Stats:")
-st.write(top_players[['Player', 'Goal_Score', 'Assist_Score', 'xG_Score', 'Player_Score']])
-
-# 6. Prediction of Goals Based on xG (Optional ML)
-X = df[['xG_y']]
-y = df['Gls']
-model = LinearRegression()
-model.fit(X, y)
-df['Predicted_Gls'] = model.predict(X)
-
-# Plot Actual vs Predicted Goals
-st.write("### Predicted Goals vs Actual Goals")
-fig, ax = plt.subplots()
-ax.scatter(df['xG_y'], df['Gls'], color='blue', label='Actual')
-ax.plot(df['xG_y'], df['Predicted_Gls'], color='red', label='Predicted', linestyle='--')
-ax.set_xlabel('xG')
-ax.set_ylabel('Goals')
-ax.legend()
-st.pyplot(fig)
+st.caption("Made with ❤️ using Streamlit")
