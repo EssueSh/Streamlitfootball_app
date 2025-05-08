@@ -3,72 +3,49 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 
-# Read the Excel file
+# Load data
 df = pd.read_csv("La-Liga Merged.csv")
 
-# 1. Title and Description
-st.title("La Liga 2021-2022 Player Stats - Valencia FC")
-st.write("""
-    This app allows you to explore the performance of Valencia FC players in the La Liga 2021-2022 season. 
-    You can view the top-performing players, compare players, and visualize their performance through different metrics.
-""")
+st.title("Valencia FC - La Liga 2021-22 Player Stats")
 
-# 2. Player Selection Dropdown
-player = st.selectbox("Select Player to View Details", df['Player'].unique())
+st.markdown("Explore Valencia FC players' performance in La Liga 2021-22 season.")
 
-# Player-wise Summary
-player_data = df[df['Player'] == player]
-st.write(f"### {player}'s Performance Summary:")
-st.write(player_data[['Player', 'Min', 'Gls', 'Ast', 'xG_y', 'xAG', 'Cmp%_x', 'PrgP', 'PrgC']])
+# Player details
+player = st.selectbox("Choose a Player", df['Player'].unique())
+st.subheader(f"{player} - Performance Summary")
+st.dataframe(df[df['Player'] == player][['Min', 'Gls', 'Ast', 'xG_y', 'xAG', 'Cmp%_x', 'PrgP', 'PrgC']])
 
-# 3. Comparison of Multiple Players
-st.write("### Compare Players:")
-selected_players = st.multiselect("Select Players to Compare", df['Player'].unique())
+# Compare players
+selected = st.multiselect("Compare Players", df['Player'].unique())
+if selected:
+    st.subheader("Comparison Table")
+    st.dataframe(df[df['Player'].isin(selected)][['Player', 'Gls', 'Ast', 'xG_y']])
 
-# Filter the selected players and display their stats
-if selected_players:
-    comparison_data = df[df['Player'].isin(selected_players)]
-    st.write(f"### Comparison Between Selected Players:")
-    st.write(comparison_data[['Player', 'Min', 'Gls', 'Ast', 'xG_y', 'xAG', 'Cmp%_x', 'PrgP', 'PrgC']])
+# Best performers
+st.subheader("Top Performers")
+st.write(f"**Top Scorer:** {df.loc[df['Gls'].idxmax(), 'Player']} ({df['Gls'].max()} goals)")
+st.write(f"**Top Assister:** {df.loc[df['Ast'].idxmax(), 'Player']} ({df['Ast'].max()} assists)")
+st.write(f"**Highest xG:** {df.loc[df['xG_y'].idxmax(), 'Player']} ({df['xG_y'].max()} xG)")
 
-# 4. Best Player Stats Summary (Show Top Performers)
-best_scorer = df.loc[df['Gls'].idxmax()]
-best_assist = df.loc[df['Ast'].idxmax()]
-best_xG = df.loc[df['xG_y'].idxmax()]
+# Player ranking
+df['Score'] = (
+    0.4 * df['Gls'] / df['Gls'].max() +
+    0.3 * df['Ast'] / df['Ast'].max() +
+    0.3 * df['xG_y'] / df['xG_y'].max()
+)
+st.subheader("Top Ranked Players")
+st.dataframe(df[['Player', 'Score']].sort_values('Score', ascending=False).head(10))
 
-st.write("### Best Performing Players Stats:")
-st.write(f"Top Scorer: {best_scorer['Player']} with {best_scorer['Gls']} goals")
-st.write(f"Top Assister: {best_assist['Player']} with {best_assist['Ast']} assists")
-st.write(f"Highest xG: {best_xG['Player']} with {best_xG['xG_y']} xG")
-
-# 5. Ranking Players Based on Stats (Weight Goals, Assists, and xG)
-df['Goal_Score'] = df['Gls'] / df['Gls'].max()
-df['Assist_Score'] = df['Ast'] / df['Ast'].max()
-df['xG_Score'] = df['xG_y'] / df['xG_y'].max()
-
-weights = {'Goal_Score': 0.4, 'Assist_Score': 0.3, 'xG_Score': 0.3}
-df['Player_Score'] = (df['Goal_Score'] * weights['Goal_Score'] + 
-                       df['Assist_Score'] * weights['Assist_Score'] + 
-                       df['xG_Score'] * weights['xG_Score'])
-
-# Sort players by the total score
-top_players = df.sort_values('Player_Score', ascending=False)
-st.write("### Player Ranking Based on Stats:")
-st.write(top_players[['Player', 'Goal_Score', 'Assist_Score', 'xG_Score', 'Player_Score']])
-
-# 6. Prediction of Goals Based on xG (Optional ML)
-X = df[['xG_y']]
-y = df['Gls']
+# Prediction
+st.subheader("Goals Prediction Based on xG")
 model = LinearRegression()
-model.fit(X, y)
-df['Predicted_Gls'] = model.predict(X)
+model.fit(df[['xG_y']], df['Gls'])
+df['Predicted_Gls'] = model.predict(df[['xG_y']])
 
-# Plot Actual vs Predicted Goals
-st.write("### Predicted Goals vs Actual Goals")
 fig, ax = plt.subplots()
 ax.scatter(df['xG_y'], df['Gls'], color='blue', label='Actual')
-ax.plot(df['xG_y'], df['Predicted_Gls'], color='red', label='Predicted', linestyle='--')
-ax.set_xlabel('xG')
-ax.set_ylabel('Goals')
+ax.plot(df['xG_y'], df['Predicted_Gls'], color='red', linestyle='--', label='Predicted')
+ax.set_xlabel("xG")
+ax.set_ylabel("Goals")
 ax.legend()
 st.pyplot(fig)
