@@ -4,7 +4,7 @@ import json
 st.title("⚽ Player Stat Comparison")
 
 # Load data from single JSON file
-with open("players_data.json", "r") as f:
+with open("laliga_player_data.json", "r") as f:
     data = json.load(f)
 
 player_names = list(data.keys())
