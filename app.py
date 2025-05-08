@@ -13,29 +13,35 @@ player_names = list(data.keys())
 player1 = st.selectbox("Select First Player", player_names)
 player2 = st.selectbox("Select Second Player", player_names, index=1 if len(player_names) > 1 else 0)
 
-data1 = data[player1]
-data2 = data[player2]
+    data = response.json()
 
-# Display comparison
-st.header("📊 Stat Comparison")
-stat_keys = ["goals", "assists", "xG", "xAG", "pass_pct", "shots"]
+    # Extract the player names (keys)
+    players = list(data.keys())
 
-for key in stat_keys:
-    col1, col2, col3 = st.columns([2, 1, 2])
+    # Allow the user to select two players for comparison
+    player1 = st.selectbox("Select first player", players)
+    player2 = st.selectbox("Select second player", players)
+
+    # Extract player data for the selected players
+    data1 = data.get(player1, [])[0]  # Get the first player stats
+    data2 = data.get(player2, [])[0]  # Get the second player stats
+
+    # Display stats side by side for comparison
+    stat_keys = ["Goals", "Assists", "Minutes", "Yellow", "Red", "xG", "Pass Completion %"]  # Example stats
+
+    col1, col2, col3 = st.columns([2, 1, 2])  # Create three columns
+
     with col1:
-        # Ensure the value is a number and convert it to a string for display
-        value1 = str(data1.get(key, 0))
-        st.metric(label=f"{key} ({player1})", value=value1)
+        for key in stat_keys:
+            value1 = str(data1.get(key, 0))  # Safe .get() usage for stats
+            st.metric(label=f"{key} ({player1})", value=value1)
+
     with col2:
         st.markdown("### VS")
-    with col3:
-        # Ensure the value is a number and convert it to a string for display
-        value2 = str(data2.get(key, 0))
-        st.metric(label=f"{key} ({player2})", value=value2)
 
-# Optional raw view
-with st.expander("🔍 View Full Data"):
-    st.subheader(player1)
-    st.json(data1)
-    st.subheader(player2)
-    st.json(data2)
+    with col3:
+        for key in stat_keys:
+            value2 = str(data2.get(key, 0))  # Safe .get() usage for stats
+            st.metric(label=f"{key} ({player2})", value=value2)
+else:
+    st.error("Failed to load the JSON data. Please check the GitHub URL.")
