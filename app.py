@@ -23,11 +23,15 @@ stat_keys = ["goals", "assists", "xG", "xAG", "pass_pct", "shots"]
 for key in stat_keys:
     col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
-        st.metric(label=f"{key} ({player1})", value=data1.get(key, 0))
+        # Ensure the value is a number and convert it to a string for display
+        value1 = str(data1.get(key, 0))
+        st.metric(label=f"{key} ({player1})", value=value1)
     with col2:
         st.markdown("### VS")
     with col3:
-        st.metric(label=f"{key} ({player2})", value=data2.get(key, 0))
+        # Ensure the value is a number and convert it to a string for display
+        value2 = str(data2.get(key, 0))
+        st.metric(label=f"{key} ({player2})", value=value2)
 
 # Optional raw view
 with st.expander("🔍 View Full Data"):
