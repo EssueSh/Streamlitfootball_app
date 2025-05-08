@@ -1,25 +1,37 @@
 import streamlit as st
-import pandas as pd
+import json
 
-@st.cache_data
-def load_data():
-    df = pd.read_csv("La-Liga Merged.csv")
-    return df[df['Squad'] == 'Valencia']  # Only Valencia FC
+st.title("⚽ Player Stat Comparison")
 
-df = load_data()
+# Load data from single JSON file
+with open("players_data.json", "r") as f:
+    data = json.load(f)
 
-st.title("Valencia FC - Player Stats (2021-22)")
+player_names = list(data.keys())
 
 # Player selection
-player = st.selectbox("Select Player", df['Player'].unique())
-st.write(df[df['Player'] == player][['Min', 'Gls', 'Ast', 'xG_y']])
+player1 = st.selectbox("Select First Player", player_names)
+player2 = st.selectbox("Select Second Player", player_names, index=1 if len(player_names) > 1 else 0)
 
-# Compare players (simple stats only)
-players = st.multiselect("Compare Players", df['Player'].unique())
-if players:
-    st.dataframe(df[df['Player'].isin(players)][['Player', 'Gls', 'Ast', 'xG_y']])
+data1 = data[player1]
+data2 = data[player2]
 
-# Top performers (precomputed)
-st.subheader("Top Performers")
-st.write("Top Scorer:", df.loc[df['Gls'].idxmax(), 'Player'])
-st.write("Top Assister:", df.loc[df['Ast'].idxmax(), 'Player'])
+# Display comparison
+st.header("📊 Stat Comparison")
+stat_keys = ["goals", "assists", "xG", "xAG", "pass_pct", "shots"]
+
+for key in stat_keys:
+    col1, col2, col3 = st.columns([2, 1, 2])
+    with col1:
+        st.metric(label=f"{key} ({player1})", value=data1.get(key, 0))
+    with col2:
+        st.markdown("### VS")
+    with col3:
+        st.metric(label=f"{key} ({player2})", value=data2.get(key, 0))
+
+# Optional raw view
+with st.expander("🔍 View Full Data"):
+    st.subheader(player1)
+    st.json(data1)
+    st.subheader(player2)
+    st.json(data2)
